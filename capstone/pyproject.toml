@@ -1,18 +1,14 @@
 [project]
-name = "quantum-lectures"
+name = "capstone"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "matplotlib>=3.10.9",
+    "polars>=1.40.1",
     "pylatexenc>=2.10",
     "qiskit>=2.4.1",
     "qiskit-aer>=0.17.2",
     "qiskit-ibm-runtime>=0.46.1",
-]
-
-[tool.uv.workspace]
-members = [
-    "capstone",
 ]
