@@ -69,12 +69,55 @@ def _(derive_psa_features, patient_level_data):
 
 
 @app.cell
-def _(apply_scaler, build_feature_matrix, fit_scaler, patient_features):
-    X, y = build_feature_matrix(patient_features)
+def _(patient_features, pl):
+    # Capture missingness before filling — null grade_group_max means no biopsy
+    # was performed (patient is confirmed negative, not just unsampled).
+    # Null psad residuals after PSA derivation are already flagged by psa_missing.
+    patient_features_clean = patient_features.with_columns(
+        [pl.col("grade_group_max").is_null().alias("grade_group_missing")]
+    ).with_columns(
+        [
+            pl.col("psad").fill_null(0.0),
+            pl.col("grade_group_max").fill_null(0),
+        ]
+    )
+    return (patient_features_clean,)
+
+
+@app.cell
+def _(
+    apply_scaler,
+    build_feature_matrix,
+    fit_scaler,
+    patient_features_clean,
+):
+    ANALYSIS_FEATURES = [
+        "psa",
+        "psad",
+        "grade_group_max",
+        "patient_age",
+        "n_mri_studies",
+        "had_multiple_mri",
+        "psa_missing",
+        "grade_group_missing",
+    ]
+    X, y = build_feature_matrix(patient_features_clean, feature_cols=ANALYSIS_FEATURES)
     scaler = fit_scaler(X, X.columns)
     X_scaled = apply_scaler(X, scaler)
     X_scaled.describe()
-    return (X_scaled,)
+    return (ANALYSIS_FEATURES, X_scaled, y)
+
+
+@app.cell
+def _(X_scaled):
+    X_scaled.write_csv("data/scaled_feature_matrix.csv")
+    return
+
+
+@app.cell
+def _(y):
+    y.to_frame().write_csv("data/labels.csv")
+    return
 
 
 @app.cell
